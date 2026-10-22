@@ -5,50 +5,57 @@ import { API_FALLBACK_ARTICULOS } from '../data/apiFallbackData';
 export default function Inicio() {
   const [articulos, setArticulos] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [errorApi, setErrorApi] = useState(null);
   const [tagActivo, setTagActivo] = useState('react');
-  const [usandoFallback, setUsandoFallback] = useState(false);
+  const [recargaCount, setRecargaCount] = useState(0);
 
   const tagsDisponibles = ['react', 'webdev', 'javascript', 'python', 'devops'];
 
-  // Función para consumir la API pública en tiempo real
-  const cargarArticulosApi = async (tag) => {
-    setCargando(true);
-    setErrorApi(null);
-    setUsandoFallback(false);
+  useEffect(() => {
+    let activo = true;
 
-    try {
-      const res = await fetch(`https://dev.to/api/articles?tag=${tag}&per_page=6`, {
-        headers: {
-          Accept: 'application/json'
+    fetch(`https://dev.to/api/articles?tag=${tagActivo}&per_page=6`, {
+      headers: {
+        Accept: 'application/json'
+      }
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Error HTTP: ${res.status} al consultar la API pública.`);
         }
+        return res.json();
+      })
+      .then((data) => {
+        if (!activo) return;
+        if (Array.isArray(data) && data.length > 0) {
+          setArticulos(data);
+        } else {
+          setArticulos(API_FALLBACK_ARTICULOS);
+        }
+        setCargando(false);
+      })
+      .catch((err) => {
+        if (!activo) return;
+        console.warn('Conexión con DEV.to API no disponible, activando datos de respaldo:', err.message);
+        setArticulos(API_FALLBACK_ARTICULOS);
+        setCargando(false);
       });
 
-      if (!res.ok) {
-        throw new Error(`Error HTTP: ${res.status} al consultar la API pública.`);
-      }
+    return () => {
+      activo = false;
+    };
+  }, [tagActivo, recargaCount]);
 
-      const data = await res.json();
-
-      if (Array.isArray(data) && data.length > 0) {
-        setArticulos(data);
-      } else {
-        setArticulos(API_FALLBACK_ARTICULOS);
-        setUsandoFallback(true);
-      }
-    } catch (err) {
-      console.warn('Conexión con DEV.to API no disponible, activando datos de respaldo:', err.message);
-      setErrorApi('No se pudo conectar directamente con el servidor de la API.');
-      setArticulos(API_FALLBACK_ARTICULOS);
-      setUsandoFallback(true);
-    } finally {
-      setCargando(false);
+  const cambiarTag = (nuevoTag) => {
+    if (nuevoTag !== tagActivo) {
+      setCargando(true);
+      setTagActivo(nuevoTag);
     }
   };
 
-  useEffect(() => {
-    cargarArticulosApi(tagActivo);
-  }, [tagActivo]);
+  const recargarFeed = () => {
+    setCargando(true);
+    setRecargaCount((c) => c + 1);
+  };
 
   return (
     <div className="page-container inicio-page">
@@ -130,7 +137,7 @@ export default function Inicio() {
                 key={tag}
                 type="button"
                 className={`btn-filtro ${tagActivo === tag ? 'activo' : ''}`}
-                onClick={() => setTagActivo(tag)}
+                onClick={() => cambiarTag(tag)}
                 disabled={cargando}
               >
                 #{tag}
@@ -139,7 +146,7 @@ export default function Inicio() {
             <button
               type="button"
               className="btn-filtro btn-recargar"
-              onClick={() => cargarArticulosApi(tagActivo)}
+              onClick={recargarFeed}
               title="Recargar feed de novedades"
             >
               🔄 Actualizar Feed

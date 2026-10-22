@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import emailjs from '@emailjs/browser';
 
-// Configuración predeterminada de EmailJS (puede modificarse o cargarse vía variables de entorno)
+// Configuración de EmailJS para la cátedra de Lenguajes IV
 const EMAILJS_CONFIG = {
-  serviceId: 'service_lenguaje4',
-  templateId: 'template_contacto',
-  publicKey: 'tu_public_key_aqui'
+  serviceId: 'service_gfqy2oa',
+  templateId: 'template_576mlqj',
+  publicKey: '3nuoKNwB7ap25gcDM'
 };
 
 export default function FormularioContacto() {
@@ -151,10 +151,14 @@ export default function FormularioContacto() {
     setEnviando(true);
 
     const templateParams = {
+      name: formData.nombreApellido.trim(),
       from_name: formData.nombreApellido.trim(),
+      email: formData.emailRemitente.trim(),
       from_email: formData.emailRemitente.trim(),
       to_email: formData.emailDestino.trim(),
       message: formData.mensaje.trim(),
+      title: `Consulta de ${formData.nombreApellido.trim()}`,
+      time: new Date().toLocaleString('es-AR'),
       fecha: new Date().toLocaleString('es-AR')
     };
 
@@ -163,7 +167,7 @@ export default function FormularioContacto() {
     // 1. Intentar enviar mediante EmailJS (lo visto en clases) si las credenciales están configuradas
     if (
       configEmailJS.publicKey &&
-      configEmailJS.publicKey !== 'tu_public_key_aqui' &&
+      configEmailJS.publicKey.trim() !== '' &&
       configEmailJS.serviceId &&
       configEmailJS.templateId
     ) {
@@ -176,7 +180,7 @@ export default function FormularioContacto() {
         );
         envioExitoso = true;
       } catch (err) {
-        console.warn('Fallo intento con EmailJS, procediendo con método directo:', err);
+        console.warn('Fallo intento con EmailJS, procediendo con método de respaldo:', err);
       }
     }
 
